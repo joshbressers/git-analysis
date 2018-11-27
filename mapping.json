@@ -1,0 +1,86 @@
+{
+  "index_patterns" : ["git*"],
+  "settings" : {
+    "number_of_shards" : 1,
+    "analysis": {
+      "analyzer": {
+        "url_analyzer": {
+          "tokenizer": "uax_url_email"
+        },
+        "email_analyzer": {
+          "tokenizer": "uax_url_email"
+        }
+      }
+    }
+  },
+  "mappings" : {
+    "doc": {
+      "properties": {
+        "author_email": {
+          "type": "text",
+          "analyzer" : "url_analyzer",
+          "fields": {
+            "keyword": {
+            "type": "keyword"
+            }
+          }
+        },
+        "author_tz_offset": {
+          "type": "long"
+        },
+        "authored_date": {
+          "type": "date",
+          "format" : "epoch_second"
+        },
+        "committed_date": {
+          "type": "date",
+          "format" : "epoch_second"
+        },
+        "committer_email": {
+          "type": "text",
+          "analyzer" : "url_analyzer",
+          "fields": {
+            "keyword": {
+            "type": "keyword"
+            }
+          }
+        },
+        "committer_tz_offset": {
+          "type": "long"
+        },
+        "conf_encoding": {
+          "type": "text"
+        },
+        "env_author_date": {
+          "type": "text"
+        },
+        "env_committer_date": {
+          "type": "text"
+        },
+        "gpgsig": {
+          "type": "boolean"
+        },
+        "id": {
+          "type": "text",
+          "fields": {
+            "keyword": {
+              "type": "keyword"
+            }
+          }
+        },
+        "message": {
+          "type": "text",
+          "fielddata" : "true",
+          "analyzer" : "english"
+        },
+        "url": {
+          "type": "text",
+          "analyzer" : "url_analyzer"
+        },
+        "size": {
+          "type": "long"
+        }
+      }
+    }
+  }
+}
