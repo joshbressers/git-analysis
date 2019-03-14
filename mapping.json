@@ -75,7 +75,12 @@
         },
         "url": {
           "type": "text",
-          "analyzer" : "url_analyzer"
+          "analyzer" : "url_analyzer",
+          "fields": {
+            "keyword": {
+              "type": "keyword"
+            }
+          }
         },
         "size": {
           "type": "long"

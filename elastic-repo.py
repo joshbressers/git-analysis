@@ -1,14 +1,24 @@
 #!/usr/bin/env python3
 
 import sys
+import shutil
+import tempfile
 from git import Repo
+import elasticsearch
+import elasticsearch.helpers
 from elasticsearch import Elasticsearch
+
+es = Elasticsearch(['http://localhost:9200'])
 
 def main():
 
-    es = Elasticsearch(['http://localhost:9200'])
+    for i in get_repos():
+        load_repo(i)
 
-    repo = Repo(sys.argv[1])
+def load_repo(repo_url):
+
+    repodir = tempfile.mkdtemp()
+    repo = Repo.clone_from(repo_url, repodir)
     if repo.bare:
         sys.exit(1, "Repo is a bear")
 
@@ -46,6 +56,25 @@ def main():
             print("Exception")
             print(repo_data)
             print("--------------------------")
+
+    shutil.rmtree(repodir)
+
+def get_repos():
+
+    repos = []
+
+    query = { "_source": ["clone_url"],
+              "query" : {
+                "match_all" : {}
+              }
+            }
+
+    es_data = elasticsearch.helpers.scan(es, index="repos", query=query, scroll='5m')
+
+    for i in es_data:
+        repos.append(i['_source']['clone_url'])
+
+    return repos
 
 if __name__ == "__main__":
     main()
