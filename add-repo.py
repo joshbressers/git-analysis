@@ -13,6 +13,9 @@ def main():
     response = requests.get("https://api.github.com/repos/%s" % name)
     repo = response.json()
 
+    if 'message' in repo:
+        sys.exit("Repo not found")
+
     es.update(id=name, index='repos', doc_type='_doc', body={'doc' :repo, 'doc_as_upsert': True}, request_timeout=30)
 
 if __name__ == "__main__":
