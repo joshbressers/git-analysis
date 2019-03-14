@@ -13,6 +13,7 @@ es = Elasticsearch(['http://localhost:9200'])
 def main():
 
     for i in get_repos():
+        print("Loading %s" % i)
         load_repo(i)
 
 def load_repo(repo_url):
