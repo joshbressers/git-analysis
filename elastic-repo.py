@@ -12,11 +12,12 @@ es = Elasticsearch(['http://localhost:9200'])
 
 def main():
 
-    for i in get_repos():
+    repo_data = get_repos()
+    for i in repo_data:
         print("Loading %s" % i)
-        load_repo(i)
+        load_repo(i, repo_data[i])
 
-def load_repo(repo_url):
+def load_repo(repo_url, default_branch):
 
     repodir = tempfile.mkdtemp()
     repo = Repo.clone_from(repo_url, repodir)
@@ -31,7 +32,7 @@ def load_repo(repo_url):
     if url is None:
         sys.exit(1, "No origin URL found")
 
-    for i in repo.iter_commits('master'):
+    for i in repo.iter_commits(default_branch):
         repo_data = {}
         repo_data['url'] = url
         repo_data['author_email'] = i.author.email
@@ -62,9 +63,9 @@ def load_repo(repo_url):
 
 def get_repos():
 
-    repos = []
+    repos = {}
 
-    query = { "_source": ["clone_url"],
+    query = { "_source": ["clone_url", "default_branch"],
               "query" : {
                 "match_all" : {}
               }
@@ -73,7 +74,7 @@ def get_repos():
     es_data = elasticsearch.helpers.scan(es, index="repos", query=query, scroll='5m')
 
     for i in es_data:
-        repos.append(i['_source']['clone_url'])
+        repos[i['_source']['clone_url']] = i['_source']['default_branch']
 
     return repos
 
