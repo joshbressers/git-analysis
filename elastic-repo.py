@@ -8,7 +8,13 @@ import elasticsearch
 import elasticsearch.helpers
 from elasticsearch import Elasticsearch
 
-es = Elasticsearch(['http://localhost:9200'])
+if 'ESURL' not in os.environ:
+    es_url = "http://localhost:9200"
+else:
+    es_url = os.environ['ESURL']
+
+es = Elasticsearch([es_url])
+
 
 def main():
 
