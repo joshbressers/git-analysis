@@ -1,5 +1,4 @@
 {
-  "index_patterns" : ["git*"],
   "settings" : {
     "number_of_shards" : 1,
     "analysis": {
@@ -14,7 +13,6 @@
     }
   },
   "mappings" : {
-    "doc": {
       "properties": {
         "author_email": {
           "type": "text",
@@ -87,5 +85,4 @@
         }
       }
     }
-  }
 }
