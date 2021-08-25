@@ -1,12 +1,25 @@
 #!/usr/bin/env python3
 
 import sys
+import os
+import json
 import shutil
 import tempfile
 from git import Repo
 import elasticsearch
 import elasticsearch.helpers
 from elasticsearch import Elasticsearch
+
+import argparse
+
+parser = argparse.ArgumentParser()
+
+parser.add_argument('--repo', '-r', action="store",
+                    dest="repo", help="Specify a path to a repo")
+parser.add_argument('--branch', '-b', action="store", default="main",
+                    dest="branch", help="Specify the default branch")
+args = parser.parse_args()
+
 
 if 'ESURL' not in os.environ:
     es_url = "http://localhost:9200"
@@ -18,17 +31,40 @@ es = Elasticsearch([es_url])
 
 def main():
 
-    repo_data = get_repos()
-    for i in repo_data:
-        print("Loading %s" % i)
-        load_repo(i, repo_data[i])
+    # First let's see if the index exists
+    if es.indices.exists('git') is False:
+        # We have to create it and add a mapping
+        fh = open('mapping.json')
+        mapping = json.load(fh)
+        es.indices.create('git', body=mapping)
 
-def load_repo(repo_url, default_branch):
+    if args.repo is None:
+        repo_data = get_repos()
+        for i in repo_data:
+            print("Loading %s" % i)
+            tmpdir = clone_repo(i)
+            git_repo = open_repo(tmpdir.name)
+            load_repo(git_repo, repo_data[i])
+            tmpdir.cleanup()
+    else:
+        git_repo = open_repo(args.repo)
+        load_repo(git_repo, args.branch)
 
-    repodir = tempfile.mkdtemp()
+def clone_repo(repo_url):
+    tmpdir = tempfile.TemporaryDirectory()
+    repodir = tmpdir.name
     repo = Repo.clone_from(repo_url, repodir)
     if repo.bare:
         sys.exit(1, "Repo is a bear")
+    repo.close()
+
+    return tmpdir
+
+def open_repo(repo_path):
+    return Repo(repo_path)
+
+def load_repo(repo, default_branch):
+
 
     url = None
     for i in repo.remotes:
@@ -59,13 +95,11 @@ def load_repo(repo_url, default_branch):
         repo_data['size'] = i.size
 
         try:
-            es.update(id=repo_data['id'], index="git", doc_type='doc', body={'doc' :repo_data, 'doc_as_upsert': True})
+            es.update(id=repo_data['id'], index="git", body={'doc' :repo_data, 'doc_as_upsert': True})
         except:
             print("Exception")
             print(repo_data)
             print("--------------------------")
-
-    shutil.rmtree(repodir)
 
 def get_repos():
 
