@@ -9,6 +9,7 @@ from git import Repo
 import elasticsearch
 import elasticsearch.helpers
 from elasticsearch import Elasticsearch
+from tqdm import tqdm
 
 import argparse
 
@@ -103,7 +104,6 @@ def open_repo(repo_path):
 def load_repo(repo, default_branch):
 
     the_commits = Commits()
-    count = 0
 
     total_commits = sum(1 for _ in repo.iter_commits(default_branch))
 
@@ -115,7 +115,7 @@ def load_repo(repo, default_branch):
     if url is None:
         sys.exit(1, "No origin URL found")
 
-    for i in repo.iter_commits(default_branch):
+    for i in tqdm(repo.iter_commits(default_branch), total=total_commits):
         repo_data = {}
         repo_data['url'] = url
         repo_data['author_email'] = i.author.email
@@ -141,10 +141,6 @@ def load_repo(repo, default_branch):
             print(errors)
             print("--------------------------")
 
-        count = count + 1
-
-        if not count % 1000:
-            print("%s/%s" % (count, total_commits))
 
     errors = the_commits.done()
     if errors:
