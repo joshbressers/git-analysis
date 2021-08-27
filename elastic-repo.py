@@ -51,7 +51,7 @@ class Commits:
     def __maybe_update__(self, force = False):
         # Send updates in batches of 100
 
-        if len(self.commits) < 500 and force != True:
+        if len(self.commits) < 1000 and force != True:
             return
 
         errors = []
