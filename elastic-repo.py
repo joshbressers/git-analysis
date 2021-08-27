@@ -28,6 +28,43 @@ else:
 
 es = Elasticsearch([es_url])
 
+class Commits:
+
+    def __init__(self):
+        self.commits = []
+
+    def add(self, commit_data):
+
+        new_data = {
+            '_op_type': 'update',
+            '_index': "git",
+            '_id': commit_data['id'],
+            'doc_as_upsert': True,
+            'doc': commit_data
+        }
+
+        self.commits.append(new_data)
+
+        return self.__maybe_update__()
+
+    def __maybe_update__(self, force = False):
+        # Send updates in batches of 100
+
+        if len(self.commits) < 500 and force != True:
+            return
+
+        errors = []
+
+        for ok, item in elasticsearch.helpers.streaming_bulk(es, self.commits, max_retries=2):
+            if not ok:
+                errors.append(item)
+
+        self.commits = []
+
+        return errors
+
+    def done(self):
+        return self.__maybe_update__(True)
 
 def main():
 
@@ -65,6 +102,10 @@ def open_repo(repo_path):
 
 def load_repo(repo, default_branch):
 
+    the_commits = Commits()
+    count = 0
+
+    total_commits = sum(1 for _ in repo.iter_commits(default_branch))
 
     url = None
     for i in repo.remotes:
@@ -94,12 +135,22 @@ def load_repo(repo, default_branch):
         repo_data['message'] = i.message
         repo_data['size'] = i.size
 
-        try:
-            es.update(id=repo_data['id'], index="git", body={'doc' :repo_data, 'doc_as_upsert': True})
-        except:
-            print("Exception")
-            print(repo_data)
+        errors = the_commits.add(repo_data)
+        if errors:
+            print("Bad Things Happened")
+            print(errors)
             print("--------------------------")
+
+        count = count + 1
+
+        if not count % 1000:
+            print("%s/%s" % (count, total_commits))
+
+    errors = the_commits.done()
+    if errors:
+        print("Bad Things Happened")
+        print(errors)
+        print("--------------------------")
 
 def get_repos():
 
